@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>Mercadito · Encuentra tu precio</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --brand: #FF4D6D;
+  --brand2: #FF9A3C;
+  --yes: #22c55e;
+  --no: #ef4444;
+  --dark: #0D0D0D;
+  --surface: #141414;
+  --card-bg: #1C1C1E;
+  --muted: #3A3A3C;
+  --text: #F5F5F7;
+  --text2: #8E8E93;
+}
+
+html, body {
+  margin: 0; padding: 0;
+  width: 100%; height: 100%;
+  background: var(--dark);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ── LAYOUT ── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── TOPBAR ── */
+#topbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 10px;
+  position: relative;
+  z-index: 10;
+}
+.logo {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  background: linear-gradient(90deg, var(--brand), var(--brand2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.logo span { font-weight: 400; opacity: 0.5; -webkit-text-fill-color: var(--text2); font-size: 18px; }
+
+.icon-btn {
+  width: 40px; height: 40px;
+  background: var(--card-bg);
+  border-radius: 14px;
+  border: 1px solid var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.icon-btn:active { background: var(--muted); }
+.icon-btn svg { width: 18px; height: 18px; stroke: var(--text2); }
+
+.notif-dot {
+  position: absolute; top: 6px; right: 6px;
+  width: 7px; height: 7px;
+  background: var(--brand);
+  border-radius: 50%;
+  border: 1.5px solid var(--dark);
+}
+
+/* ── CATEGORY PILLS ── */
+#cats {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  padding: 6px 20px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#cats::-webkit-scrollbar { display: none; }
+
+.cat-pill {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1.5px solid var(--muted);
+  color: var(--text2);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.cat-pill.active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.cat-pill:not(.active):active { background: var(--muted); }
+
+/* ── CARD STACK AREA ── */
+#stack-area {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 16px;
+}
+
+/* ── PRODUCT CARD ── */
+.prod-card {
+  position: absolute;
+  width: 100%;
+  max-width: 440px;
+  border-radius: 28px;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  will-change: transform;
+  transition: box-shadow 0.2s;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  background: var(--card-bg);
+}
+.prod-card:active { cursor: grabbing; }
+
+/* back cards */
+.prod-card.back-1 {
+  transform: scale(0.94) translateY(20px);
+  z-index: 1;
+  pointer-events: none;
+}
+.prod-card.back-2 {
+  transform: scale(0.88) translateY(40px);
+  z-index: 0;
+  pointer-events: none;
+}
+.prod-card.front { z-index: 5; }
+
+/* card image */
+.card-img-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3/4;
+  overflow: hidden;
+  max-height: 55vh;
+}
+.card-img-wrap img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+/* gradient overlay */
+.card-img-wrap::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom,
+    rgba(0,0,0,0) 40%,
+    rgba(0,0,0,0.85) 100%);
+}
+
+/* LIKE / NOPE stamps */
+.stamp {
+  position: absolute;
+  top: 28px;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  padding: 6px 16px;
+  border-radius: 10px;
+  border: 3px solid;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transform: rotate(-15deg);
+  transition: opacity 0.05s;
+}
+.stamp.yes { left: 24px; color: var(--yes); border-color: var(--yes); transform: rotate(-15deg); }
+.stamp.no  { right: 24px; color: var(--no); border-color: var(--no); transform: rotate(15deg); }
+
+/* card info overlay */
+.card-info {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 16px 20px 0;
+  z-index: 6;
+  pointer-events: none;
+}
+.card-title { font-size: 22px; font-weight: 800; color: #fff; line-height: 1.2; margin-bottom: 2px; }
+.card-shop  { font-size: 13px; color: rgba(255,255,255,0.65); font-weight: 500; display: flex; align-items: center; gap: 4px; }
+.shop-dot   { width: 6px; height: 6px; border-radius: 50%; background: var(--yes); flex-shrink: 0; }
+
+/* price badge */
+.price-badge {
+  position: absolute;
+  top: 16px; right: 16px;
+  z-index: 7;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
+  padding: 8px 14px;
+  text-align: right;
+  pointer-events: none;
+}
+.price-label { font-size: 10px; color: rgba(255,255,255,0.6); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.price-val   { font-size: 22px; font-weight: 900; color: #fff; line-height: 1.1; }
+
+/* distance badge */
+.dist-badge {
+  position: absolute;
+  top: 16px; left: 16px;
+  z-index: 7;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 10px;
+  padding: 5px 10px;
+  font-size: 11px; font-weight: 700;
+  color: rgba(255,255,255,0.85);
+  display: flex; align-items: center; gap: 4px;
+  pointer-events: none;
+}
+
+/* ── SLIDER PANEL (inside card bottom) ── */
+.slider-panel {
+  background: var(--card-bg);
+  padding: 14px 20px 16px;
+  pointer-events: all;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.offer-label { font-size: 11px; color: var(--text2); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.offer-num {
+  font-size: 36px;
+  font-weight: 900;
+  background: linear-gradient(90deg, var(--brand), var(--brand2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+  transition: opacity 0.1s;
+}
+.savings-chip {
+  font-size: 11px; font-weight: 700;
+  background: rgba(34,197,94,0.15);
+  color: var(--yes);
+  padding: 4px 10px;
+  border-radius: 99px;
+}
+
+/* custom range */
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 5px;
+  border-radius: 99px;
+  outline: none;
+  cursor: pointer;
+  background: var(--muted);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  box-shadow: 0 0 0 4px rgba(255,77,109,0.2), 0 4px 12px rgba(255,77,109,0.4);
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+input[type="range"]::-webkit-slider-thumb:active {
+  box-shadow: 0 0 0 8px rgba(255,77,109,0.15), 0 4px 18px rgba(255,77,109,0.5);
+}
+#main-slider {
+  background: linear-gradient(to right,
+    var(--brand) 0%,
+    var(--brand2) var(--pct, 60%),
+    var(--muted) var(--pct, 60%));
+}
+
+.slider-limits {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text2);
+  font-weight: 600;
+}
+
+/* ── ACTION BUTTONS ── */
+#actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 24px 14px;
+}
+
+.action-btn {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+.action-btn:active { transform: scale(0.9); }
+
+.btn-skip {
+  width: 54px; height: 54px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--muted);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.btn-skip svg { width: 22px; height: 22px; stroke: var(--no); }
+
+.btn-offer {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  box-shadow: 0 8px 28px rgba(255,77,109,0.45);
+}
+.btn-offer svg { width: 30px; height: 30px; stroke: #fff; stroke-width: 2.2; }
+
+.btn-like {
+  width: 54px; height: 54px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--muted);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.btn-like svg { width: 22px; height: 22px; }
+.btn-like.liked svg { fill: var(--brand); stroke: var(--brand); }
+.btn-like:not(.liked) svg { fill: none; stroke: var(--brand); }
+
+/* ── BOTTOM NAV ── */
+#bottom-nav {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: var(--surface);
+  border-top: 1px solid var(--muted);
+  padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer;
+  padding: 0 16px;
+  color: var(--text2);
+  font-size: 10px; font-weight: 600;
+  transition: color 0.15s;
+  position: relative;
+}
+.nav-item.active { color: var(--brand); }
+.nav-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.nav-item.active svg { stroke-width: 2.3; }
+.nav-badge {
+  position: absolute; top: -2px; right: 10px;
+  background: var(--brand); color: #fff;
+  font-size: 9px; font-weight: 800;
+  width: 16px; height: 16px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--surface);
+}
+
+/* ── MATCH MODAL ── */
+#match-modal {
+  position: fixed; inset: 0;
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#match-modal.show { display: flex; }
+
+#match-card {
+  background: var(--card-bg);
+  border: 1px solid var(--muted);
+  border-radius: 32px;
+  padding: 32px 24px 24px;
+  width: 100%;
+  max-width: 340px;
+  text-align: center;
+  transform: scale(0.8) translateY(40px);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+}
+#match-modal.show #match-card {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+.match-emoji { font-size: 64px; line-height: 1; margin-bottom: 12px; display: block; }
+.match-title { font-size: 30px; font-weight: 900; margin-bottom: 4px; background: linear-gradient(90deg, var(--brand), var(--brand2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.match-sub   { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
+
+.match-summary {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--muted);
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  margin-bottom: 20px;
+  gap: 12px;
+}
+.match-col { text-align: center; }
+.match-col .lbl { font-size: 10px; color: var(--text2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.match-col .val { font-size: 22px; font-weight: 900; color: var(--text); }
+.match-col .val.strike { text-decoration: line-through; color: var(--text2); font-size: 18px; }
+.match-col .val.hot { background: linear-gradient(90deg, var(--brand), var(--brand2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.match-arrow { font-size: 20px; color: var(--text2); flex-shrink: 0; }
+
+.match-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 18px;
+  font-size: 16px; font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  box-shadow: 0 8px 24px rgba(255,77,109,0.35);
+  cursor: pointer;
+  border: none;
+  margin-bottom: 10px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.match-btn:active { transform: scale(0.97); box-shadow: 0 4px 14px rgba(255,77,109,0.3); }
+
+.match-skip {
+  font-size: 13px; color: var(--text2); font-weight: 600; cursor: pointer; padding: 8px;
+}
+.match-skip:hover { color: var(--text); }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--card-bg);
+  border: 1px solid var(--muted);
+  border-radius: 14px;
+  padding: 10px 18px;
+  font-size: 13px; font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── EMPTY STATE ── */
+#empty-state {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  text-align: center;
+  padding: 32px;
+}
+#empty-state .big { font-size: 64px; }
+#empty-state h3 { font-size: 22px; font-weight: 800; color: var(--text); margin: 0; }
+#empty-state p { font-size: 14px; color: var(--text2); margin: 0; }
+#empty-state button {
+  margin-top: 12px;
+  padding: 14px 28px;
+  border-radius: 16px;
+  font-size: 15px; font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  border: none; cursor: pointer;
+  box-shadow: 0 8px 24px rgba(255,77,109,0.35);
+}
+
+/* ── ANIM ── */
+@keyframes like-pop { 0%{transform:scale(1)} 50%{transform:scale(1.35)} 100%{transform:scale(1)} }
+.like-pop { animation: like-pop 0.3s ease; }
+
+@keyframes fly-out-right { to { transform: translateX(120vw) rotate(25deg); opacity: 0; } }
+@keyframes fly-out-left  { to { transform: translateX(-120vw) rotate(-25deg); opacity: 0; } }
+@keyframes fly-out-up    { to { transform: translateY(-120vh) rotate(5deg); opacity: 0; } }
+.fly-right { animation: fly-out-right 0.45s cubic-bezier(0.4,0,0.2,1) forwards; }
+.fly-left  { animation: fly-out-left  0.45s cubic-bezier(0.4,0,0.2,1) forwards; }
+.fly-up    { animation: fly-out-up    0.45s cubic-bezier(0.4,0,0.2,1) forwards; }
+
+@keyframes promote {
+  to { transform: scale(1) translateY(0); }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="logo">mercadito <span>·</span></div>
+    <div style="display:flex;gap:10px;">
+      <div class="icon-btn" style="position:relative;">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="m21 21-4.35-4.35"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div id="cats">
+    <div class="cat-pill active" onclick="filterCat(this)">🔥 Todo</div>
+    <div class="cat-pill" onclick="filterCat(this)">👟 Calzado</div>
+    <div class="cat-pill" onclick="filterCat(this)">📱 Tech</div>
+    <div class="cat-pill" onclick="filterCat(this)">👗 Ropa</div>
+    <div class="cat-pill" onclick="filterCat(this)">🏠 Hogar</div>
+    <div class="cat-pill" onclick="filterCat(this)">🎮 Gaming</div>
+    <div class="cat-pill" onclick="filterCat(this)">💄 Beauty</div>
+  </div>
+
+  <!-- CARD STACK -->
+  <div id="stack-area">
+
+    <!-- Empty state -->
+    <div id="empty-state">
+      <div class="big">🛍️</div>
+      <h3>Ya viste todo</h3>
+      <p>No hay más productos en esta categoría.<br>Vuelve más tarde o cambia el filtro.</p>
+      <button onclick="resetCards()">Volver a empezar</button>
+    </div>
+
+    <!-- Cards are injected by JS -->
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div id="actions">
+    <!-- Skip -->
+    <button class="action-btn btn-skip" onclick="swipeCard('left')" title="Pasar">
+      <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+
+    <!-- Offer (main CTA) -->
+    <button class="action-btn btn-offer" onclick="launchOffer()" title="Lanzar oferta">
+      <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    </button>
+
+    <!-- Like / save -->
+    <button class="action-btn btn-like" id="like-btn" onclick="toggleLike()" title="Guardar">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+    </button>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav id="bottom-nav">
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>
+      Inicio
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      Guardados
+    </div>
+    <div class="nav-item" style="position:relative;">
+      <div style="
+        width:52px; height:52px; margin-top:-22px;
+        background: linear-gradient(135deg, #FF4D6D, #FF9A3C);
+        border-radius: 50%;
+        display:flex; align-items:center; justify-content:center;
+        box-shadow: 0 4px 18px rgba(255,77,109,0.5);
+        border: 3px solid var(--dark);
+      ">
+        <svg style="width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.5;" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      </div>
+      Publicar
+    </div>
+    <div class="nav-item" style="position:relative;">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+      <div class="nav-badge">3</div>
+      Chats
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg>
+      Perfil
+    </div>
+  </nav>
+</div>
+
+<!-- MATCH MODAL -->
+<div id="match-modal">
+  <div id="match-card">
+    <span class="match-emoji">🎯</span>
+    <div class="match-title">¡Match!</div>
+    <p class="match-sub">Tu oferta fue aceptada automáticamente</p>
+
+    <div class="match-summary">
+      <div class="match-col">
+        <div class="lbl">Precio</div>
+        <div class="val strike" id="m-original">$50</div>
+      </div>
+      <div class="match-arrow">→</div>
+      <div class="match-col">
+        <div class="lbl">Tu oferta</div>
+        <div class="val hot" id="m-offer">$44</div>
+      </div>
+      <div class="match-arrow">→</div>
+      <div class="match-col">
+        <div class="lbl">Ahorras</div>
+        <div class="val" id="m-savings" style="color:#22c55e;">$6</div>
+      </div>
+    </div>
+
+    <button class="match-btn" onclick="closeModal()">
+      <svg style="width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+      Ir al Chat con el vendedor
+    </button>
+    <div class="match-skip" onclick="closeModal()">Seguir comprando</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────
+const PRODUCTS = [
+  {
+    id: 1,
+    title: 'Zapatillas Air Max',
+    shop: 'Nike Store',
+    price: 50,
+    secretMin: 44,
+    dist: '1.2 km',
+    img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80',
+    tags: ['Running', 'Talla 42']
+  },
+  {
+    id: 2,
+    title: 'iPhone 14 Pro',
+    shop: 'Tech Palace',
+    price: 950,
+    secretMin: 880,
+    dist: '0.8 km',
+    img: 'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=600&q=80',
+    tags: ['128GB', 'Negro']
+  },
+  {
+    id: 3,
+    title: 'Chaqueta Bomber',
+    shop: 'Urban Threads',
+    price: 85,
+    secretMin: 70,
+    dist: '2.4 km',
+    img: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=600&q=80',
+    tags: ['Unisex', 'Talla M']
+  },
+  {
+    id: 4,
+    title: 'Sony WH-1000XM5',
+    shop: 'Audio World',
+    price: 320,
+    secretMin: 290,
+    dist: '3.1 km',
+    img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80',
+    tags: ['Noise Cancel', 'Bluetooth']
+  },
+  {
+    id: 5,
+    title: 'Sillón de Diseño',
+    shop: 'Casa Moderna',
+    price: 430,
+    secretMin: 390,
+    dist: '0.5 km',
+    img: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80',
+    tags: ['Cuero', 'Beige']
+  },
+];
+
+// ── STATE ──────────────────────────────────────────────────────────────
+let deck = [...PRODUCTS];
+let currentIdx = 0;
+let liked = false;
+let offerValue = 0;
+
+// ── CARD BUILDER ───────────────────────────────────────────────────────
+function buildCard(product, cls) {
+  const sliderMin = Math.round(product.price * 0.5);
+  const sliderMax = product.price;
+  const sliderDefault = Math.round(product.price * 0.85);
+
+  const div = document.createElement('div');
+  div.className = `prod-card ${cls}`;
+  div.dataset.id = product.id;
+  div.innerHTML = `
+    <div class="card-img-wrap">
+      <img src="${product.img}" alt="${product.title}" draggable="false"/>
+      <div class="stamp yes" id="stamp-yes-${product.id}">✓ OFERTA</div>
+      <div class="stamp no"  id="stamp-no-${product.id}">SKIP</div>
+      <div class="price-badge">
+        <div class="price-label">Precio</div>
+        <div class="price-val">$${product.price}</div>
+      </div>
+      <div class="dist-badge">📍 ${product.dist}</div>
+      <div class="card-info">
+        <div class="card-title">${product.title}</div>
+        <div class="card-shop"><span class="shop-dot"></span>${product.shop}</div>
+      </div>
+    </div>
+    <div class="slider-panel">
+      <div class="slider-row">
+        <span class="offer-label">Tu Oferta</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="offer-num" id="offer-num-${product.id}">$${sliderDefault}</span>
+          <span class="savings-chip" id="savings-chip-${product.id}">Ahorras $${product.price - sliderDefault}</span>
+        </div>
+      </div>
+      <input type="range" id="slider-${product.id}"
+        min="${sliderMin}" max="${sliderMax}" value="${sliderDefault}"
+        oninput="onSlider(this, ${product.id}, ${product.price}, ${product.secretMin})"
+        onmousedown="event.stopPropagation()"
+        ontouchstart="event.stopPropagation()"
+      />
+      <div class="slider-limits"><span>Mín $${sliderMin}</span><span>Máx $${sliderMax}</span></div>
+    </div>
+  `;
+  // Init slider gradient
+  const pct = ((sliderDefault - sliderMin) / (sliderMax - sliderMin)) * 100;
+  div.querySelector(`#slider-${product.id}`).style.setProperty('--pct', pct + '%');
+  return div;
+}
+
+function renderDeck() {
+  const area = document.getElementById('stack-area');
+  // clear existing cards (not empty state)
+  area.querySelectorAll('.prod-card').forEach(c => c.remove());
+  document.getElementById('empty-state').style.display = 'none';
+
+  const remaining = deck.slice(currentIdx);
+  if (remaining.length === 0) {
+    document.getElementById('empty-state').style.display = 'flex';
+    document.getElementById('actions').style.opacity = '0.3';
+    document.getElementById('actions').style.pointerEvents = 'none';
+    return;
+  }
+  document.getElementById('actions').style.opacity = '';
+  document.getElementById('actions').style.pointerEvents = '';
+
+  // render up to 3 cards, back first
+  const toRender = remaining.slice(0, 3).reverse();
+  toRender.forEach((p, i) => {
+    const rIdx = toRender.length - 1 - i; // front = 0, back = 2
+    let cls = rIdx === 0 ? 'front' : rIdx === 1 ? 'back-1' : 'back-2';
+    const card = buildCard(p, cls);
+    area.insertBefore(card, area.firstChild);
+    if (cls === 'front') attachDrag(card, p);
+  });
+
+  // Reset like button state
+  liked = false;
+  document.getElementById('like-btn').classList.remove('liked');
+
+  // Set initial offer value for main slider
+  const cur = deck[currentIdx];
+  offerValue = Math.round(cur.price * 0.85);
+}
+
+// ── SLIDER ─────────────────────────────────────────────────────────────
+function onSlider(el, id, price, secretMin) {
+  const val = parseInt(el.value);
+  offerValue = val;
+  const min = parseInt(el.min);
+  const max = parseInt(el.max);
+  const pct = ((val - min) / (max - min)) * 100;
+  el.style.setProperty('--pct', pct + '%');
+
+  document.getElementById(`offer-num-${id}`).textContent = `$${val}`;
+  document.getElementById(`savings-chip-${id}`).textContent = `Ahorras $${price - val}`;
+}
+
+// ── DRAG / SWIPE ────────────────────────────────────────────────────────
+function attachDrag(card, product) {
+  let startX = 0, startY = 0;
+  let curX = 0, curY = 0;
+  let dragging = false;
+
+  function onDown(e) {
+    // ignore if on slider
+    if (e.target.tagName === 'INPUT') return;
+    dragging = true;
+    const p = e.touches ? e.touches[0] : e;
+    startX = p.clientX; startY = p.clientY;
+    card.style.transition = 'none';
+    card.style.cursor = 'grabbing';
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    const p = e.touches ? e.touches[0] : e;
+    curX = p.clientX - startX;
+    curY = p.clientY - startY;
+    const rot = curX * 0.07;
+    card.style.transform = `translateX(${curX}px) translateY(${curY * 0.3}px) rotate(${rot}deg)`;
+
+    // stamps
+    const yesStamp = document.getElementById(`stamp-yes-${product.id}`);
+    const noStamp  = document.getElementById(`stamp-no-${product.id}`);
+    const threshold = 60;
+    if (curX > threshold) {
+      yesStamp.style.opacity = Math.min((curX - threshold) / 80, 1);
+      noStamp.style.opacity  = 0;
+    } else if (curX < -threshold) {
+      noStamp.style.opacity  = Math.min((-curX - threshold) / 80, 1);
+      yesStamp.style.opacity = 0;
+    } else {
+      yesStamp.style.opacity = 0;
+      noStamp.style.opacity  = 0;
+    }
+    e.preventDefault();
+  }
+  function onUp() {
+    if (!dragging) return;
+    dragging = false;
+    card.style.cursor = 'grab';
+
+    const threshold = 100;
+    if (curX > threshold) {
+      swipeCard('right', card);
+    } else if (curX < -threshold) {
+      swipeCard('left', card);
+    } else {
+      // snap back
+      card.style.transition = 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+      card.style.transform = '';
+      const yesStamp = document.getElementById(`stamp-yes-${product.id}`);
+      const noStamp  = document.getElementById(`stamp-no-${product.id}`);
+      if (yesStamp) yesStamp.style.opacity = 0;
+      if (noStamp)  noStamp.style.opacity  = 0;
+    }
+    curX = 0; curY = 0;
+  }
+
+  card.addEventListener('mousedown', onDown);
+  card.addEventListener('touchstart', onDown, { passive: false });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('mouseup', onUp);
+  document.addEventListener('touchend', onUp);
+}
+
+// ── SWIPE LOGIC ──────────────────────────────────────────────────────
+function swipeCard(dir, cardEl) {
+  const area = document.getElementById('stack-area');
+  const front = cardEl || area.querySelector('.prod-card.front');
+  if (!front) return;
+
+  const flyClass = dir === 'right' ? 'fly-right' : dir === 'left' ? 'fly-left' : 'fly-up';
+  front.classList.add(flyClass);
+  front.style.transition = 'none';
+
+  setTimeout(() => {
+    front.remove();
+    currentIdx++;
+    renderDeck();
+  }, 420);
+
+  if (dir === 'right') showToast('💾 Guardado en favoritos');
+  if (dir === 'left')  showToast('👋 Siguiente producto');
+}
+
+// ── OFFER ────────────────────────────────────────────────────────────
+function launchOffer() {
+  const cur = deck[currentIdx];
+  if (!cur) return;
+
+  const sliderEl = document.getElementById(`slider-${cur.id}`);
+  const val = sliderEl ? parseInt(sliderEl.value) : offerValue;
+
+  // Update modal
+  document.getElementById('m-original').textContent = `$${cur.price}`;
+  document.getElementById('m-offer').textContent    = `$${val}`;
+  document.getElementById('m-savings').textContent  = `$${cur.price - val}`;
+
+  const modal = document.getElementById('match-modal');
+  modal.classList.add('show');
+
+  // Fly card up after short delay
+  setTimeout(() => swipeCard('up'), 300);
+}
+
+function closeModal() {
+  document.getElementById('match-modal').classList.remove('show');
+}
+
+// ── LIKE ─────────────────────────────────────────────────────────────
+function toggleLike() {
+  liked = !liked;
+  const btn = document.getElementById('like-btn');
+  btn.classList.toggle('liked', liked);
+  btn.classList.add('like-pop');
+  setTimeout(() => btn.classList.remove('like-pop'), 300);
+  if (liked) showToast('❤️ Guardado en favoritos');
+}
+
+// ── CATEGORY FILTER ──────────────────────────────────────────────────
+function filterCat(el) {
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  currentIdx = 0;
+  // Shuffle for demo
+  deck = [...PRODUCTS].sort(() => Math.random() - 0.5);
+  renderDeck();
+  showToast('🔄 Actualizando feed...');
+}
+
+// ── RESET ────────────────────────────────────────────────────────────
+function resetCards() {
+  currentIdx = 0;
+  deck = [...PRODUCTS];
+  renderDeck();
+}
+
+// ── TOAST ────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────
+renderDeck();
+</script>
+</body>
+</html>
